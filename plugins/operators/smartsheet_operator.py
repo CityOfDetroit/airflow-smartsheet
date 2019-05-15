@@ -53,8 +53,8 @@ class SmartsheetGetSheetOperator(SmartsheetAPIOperator):
 
         Arguments:
             sheet_id {int} -- Sheet ID to fetch.
-            sheet_type {int} -- Enum for sheet type.
-            paper_size {int} -- Enum for paper size.
+            sheet_type {str} -- Sheet type.
+            paper_size {str} -- Paper size.
             with_json {bool} -- Whether to save a JSON format alongside.
 
         Keyword Arguments:
@@ -62,23 +62,15 @@ class SmartsheetGetSheetOperator(SmartsheetAPIOperator):
             output_dir {str} -- The output directory for downloaded sheets. (default: {None})
         """
 
-        # Sanitize enums
-        if not isinstance(sheet_type, SmartsheetEnums.SheetType):
-            raise AirflowException("Specified sheet type is invalid.")
-
-        if sheet_type == SmartsheetEnums.SheetType.PDF and paper_size is None:
-            raise AirflowException(
-                "Specified sheet type PDF but paper size unspecified.")
-
         # Set properties and initialize the operator. Out-of-range enums will result in an exception.
         self.sheet_id = sheet_id
-        self.sheet_type = SmartsheetEnums.SheetType(sheet_type)
+        self.sheet_type = SmartsheetEnums.SheetType[sheet_type]
         self.with_json = with_json
 
         if paper_size is None:
             self.paper_size = None
         else:
-            self.paper_size = SmartsheetEnums.PaperSize(paper_size)
+            self.paper_size = SmartsheetEnums.PaperSize[paper_size]
         
         if self.sheet_type is SmartsheetEnums.SheetType.PDF and self.paper_size is None:
             # Must specify paper size for PDF
