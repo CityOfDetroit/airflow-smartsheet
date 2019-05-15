@@ -2,17 +2,11 @@
 from airflow.plugins_manager import AirflowPlugin
 from airflow.models import BaseOperator
 from airflow.hooks.base_hook import BaseHook
-
-
-class SmartsheetOperators(BaseOperator):
-    pass
-
-
-class SmartsheetHooks(BaseHook):
-    pass
+from plugins.operators.smartsheet_operator import SmartsheetGetSheetOperator
+from plugins.hooks.smartsheet_hook import SmartsheetHook
 
 
 class SmartsheetPlugin(AirflowPlugin):
     name = 'smartsheet_plugin'
-    operators = [SmartsheetOperators]
-    hooks = [SmartsheetHooks]
+    operators = [SmartsheetGetSheetOperator]
+    hooks = [SmartsheetHook]
