@@ -7,7 +7,7 @@ setup(
     description="An Apache Airflow plugin to export Smartsheet sheets.",
     entry_points={
         'airflow.plugins': [
-            'smartsheet_plugin = plugins.smartsheet_plugin:SmartsheetPlugin'
+            'smartsheet_plugin = smartsheet_plugin.smartsheet_plugin:SmartsheetPlugin'
         ]
     }
 )
