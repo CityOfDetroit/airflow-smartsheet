@@ -6,8 +6,8 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.exceptions import AirflowException
 
-from plugins.hooks.smartsheet_hook import SmartsheetHook
-from plugins.operators.enums import SmartsheetEnums
+from airflow_smartsheet.hooks.smartsheet_hook import SmartsheetHook
+from airflow_smartsheet.operators.enums import SmartsheetEnums
 
 
 class SmartsheetAPIOperator(BaseOperator):
