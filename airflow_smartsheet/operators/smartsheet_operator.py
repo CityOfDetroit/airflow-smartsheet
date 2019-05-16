@@ -10,7 +10,7 @@ from airflow_smartsheet.hooks.smartsheet_hook import SmartsheetHook
 from airflow_smartsheet.operators.enums import SmartsheetEnums
 
 
-class SmartsheetAPIOperator(BaseOperator):
+class SmartsheetOperator(BaseOperator):
     """The base Smartsheet API operator.
     """
 
@@ -37,7 +37,7 @@ class SmartsheetAPIOperator(BaseOperator):
         self.smartsheet = SmartsheetHook(self.token)
 
 
-class SmartsheetGetSheetOperator(SmartsheetAPIOperator):
+class SmartsheetGetSheetOperator(SmartsheetOperator):
     """The Smartsheet operator to get a sheet as a file.
     """
 
