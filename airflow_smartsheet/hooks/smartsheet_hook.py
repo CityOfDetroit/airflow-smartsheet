@@ -1,5 +1,4 @@
 import smartsheet
-import logging
 
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
@@ -21,7 +20,6 @@ class SmartsheetHook(BaseHook):
         """
 
         self.token = self.__get_token(token)
-        logging.info(f"Initializing Smartsheet hook with token {self.token}...")
 
     def __get_token(self, token=None):
         """Either uses the user-specified token or use the default token from Airflow variables.
@@ -46,7 +44,6 @@ class SmartsheetHook(BaseHook):
             # Use token in variables
             default_token = Variable.get(VARIABLE_NAME)
             if default_token is None:
-                logging.error(f"Failed initializing Smartsheet hook; variable {VARIABLE_NAME} does not exist.")
                 raise AirflowException(
                     f"Failed initializing Smartsheet hook; variable {VARIABLE_NAME} does not exist.")
 

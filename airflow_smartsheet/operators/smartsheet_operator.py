@@ -1,7 +1,6 @@
 import os
 import tempfile
 import smartsheet
-import logging
 
 from airflow.models import BaseOperator
 from airflow.models import Variable
@@ -32,9 +31,8 @@ class SmartsheetOperator(BaseOperator):
         """Executes the operator by creating a Smartsheet API session.
         """
         
-        logging.info("Smartsheet base operator executing...")
-        self.smartsheet = SmartsheetHook(self.token)
-        logging.info("Smartsheet base operator executed.")
+        self.smartsheet_hook = SmartsheetHook(self.token)
+        self.smartsheet = self.smartsheet_hook.get_conn()
 
 
 class SmartsheetGetSheetOperator(SmartsheetOperator):
@@ -50,13 +48,11 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
                  token=None,
                  *args, **kwargs):
         """Initializes a Get Sheet operator with sheet type and paper size.
-
         Arguments:
             sheet_id {int} -- Sheet ID to fetch.
             sheet_type {str} -- Sheet type.
             paper_size {str} -- Paper size.
             with_json {bool} -- Whether to save a JSON format alongside.
-
         Keyword Arguments:
             token {str} -- The Smartsheet API access token to be used. (default: {None})
             output_dir {str} -- The output directory for downloaded sheets. (default: {None})
@@ -72,24 +68,24 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             self.paper_size = None
         else:
             self.paper_size = SmartsheetEnums.PaperSize[paper_size]
-        
+
         if self.sheet_type is SmartsheetEnums.SheetType.PDF and self.paper_size is None:
             # Must specify paper size for PDF
-            raise AirflowException("PDF sheet type needs a paper size; paper size is unspecified.")
-        
+            raise AirflowException(
+                "PDF sheet type needs a paper size; paper size is unspecified.")
+
         # Check for output directory
         if output_dir is not None:
             self.output_dir = output_dir
         else:
             self.output_dir = tempfile.gettempdir()
-        
+
         super().__init__(token, *args, **kwargs)
 
     def execute(self, context):
         """Fetches the specified sheet in the specified format.
         """
 
-        logging.info("Smartsheet GS operator executing...")
         # Initialize the hook
         super().execute()
 
@@ -106,24 +102,30 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             downloaded_sheet = self.smartsheet.Sheets.get_sheet_as_pdf(
                 self.sheet_id,
                 self.output_dir,
-                self.paper_size)
+                self.paper_size.name)
         else:
             raise AirflowException(
                 "Sheet type is not recognized. This should not happen.")
-        logging.info("Downloaded Smartsheet file.");
 
         # Check return message
         if downloaded_sheet.message != "SUCCESS":
             raise AirflowException(
                 f"Download was unsuccessful; message is {downloaded_sheet.message}.")
 
-        # Rename the file to sheet ID
+        # Make paths to old and new filenames
         file_path = os.path.join(
             downloaded_sheet.download_directory, downloaded_sheet.filename)
-        os.renames(file_path, file_path.replace(
-            downloaded_sheet.filename, self.sheet_id))
-        
+        new_file_path = os.path.join(self.output_dir, str(self.sheet_id) + "." + self.sheet_type.name.lower())
+
+        # Make sure no file is overwritten
+        if os.path.isfile(new_file_path):
+            raise AirflowException(
+                f"Cannot rename downloaded file; target filename {new_file_path} already exists.")
+        else:
+            os.rename(file_path,  new_file_path)
+
+        # Save a JSON copy if specified, replacing file extension with JSON
         if self.with_json:
-            # Save a JSON copy
-            with open(file_path[:-3] + "json", "w") as json_file:
+            json_path = os.path.join(self.output_dir, str(self.sheet_id) + ".json")
+            with open(json_path, "w") as json_file:
                 json_file.write(downloaded_sheet.to_json())
