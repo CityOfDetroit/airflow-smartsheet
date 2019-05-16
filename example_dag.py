@@ -7,10 +7,8 @@ import logging
 from datetime import datetime
 
 from airflow import DAG
-from airflow.operators.airflow_smartsheet import *
+from airflow.operators.airflow_smartsheet import SmartsheetGetSheetOperator
 
-
-logging.info("Starting Airflow Smartsheet example DAG...")
 
 default_args = {
     "owner": "xyx0826",
@@ -20,8 +18,6 @@ default_args = {
 }
 
 dag = DAG('smartsheet_example', default_args=default_args, schedule_interval=None)
-
-logging.info("Creating Airflow Smartsheet example task...")
 
 sheet_task = SmartsheetGetSheetOperator(
     task_id="get_sheet",
