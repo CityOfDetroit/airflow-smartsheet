@@ -1,8 +1,10 @@
 import os
 import tempfile
 import smartsheet
+import logging
 
 from airflow.models import BaseOperator
+from airflow.models import Variable
 from airflow.utils.decorators import apply_defaults
 from airflow.exceptions import AirflowException
 
@@ -14,7 +16,7 @@ class SmartsheetOperator(BaseOperator):
     """The base Smartsheet API operator.
     """
 
-    def __init__(self, token=None, output_dir=None, *args, **kwargs):
+    def __init__(self, token=None, *args, **kwargs):
         """Initializes a Smartsheet API session with an optionally specified token.
 
         Keyword Arguments:
@@ -24,17 +26,15 @@ class SmartsheetOperator(BaseOperator):
 
         self.token = token
 
-        if output_dir is not None:
-            self.output_dir = output_dir
-        else:
-            self.output_dir = tempfile.gettempdir()
-
         super().__init__(*args, **kwargs)
 
     def execute(self, **kwargs):
         """Executes the operator by creating a Smartsheet API session.
         """
+        
+        logging.info("Smartsheet base operator executing...")
         self.smartsheet = SmartsheetHook(self.token)
+        logging.info("Smartsheet base operator executed.")
 
 
 class SmartsheetGetSheetOperator(SmartsheetOperator):
@@ -45,9 +45,9 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
                  sheet_id,
                  sheet_type,
                  paper_size=None,
+                 output_dir=None,
                  with_json=False,
                  token=None,
-                 output_dir=None,
                  *args, **kwargs):
         """Initializes a Get Sheet operator with sheet type and paper size.
 
@@ -62,11 +62,12 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             output_dir {str} -- The output directory for downloaded sheets. (default: {None})
         """
 
-        # Set properties and initialize the operator. Out-of-range enums will result in an exception.
+        # Set properties
         self.sheet_id = sheet_id
         self.sheet_type = SmartsheetEnums.SheetType[sheet_type]
         self.with_json = with_json
 
+        # Check for paper size if format is PDF
         if paper_size is None:
             self.paper_size = None
         else:
@@ -74,13 +75,23 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
         
         if self.sheet_type is SmartsheetEnums.SheetType.PDF and self.paper_size is None:
             # Must specify paper size for PDF
-            raise AirflowException("Paper size is unspecified for PDF sheet type.")
+            raise AirflowException("PDF sheet type needs a paper size; paper size is unspecified.")
         
-        super().__init__(token, output_dir, *args, **kwargs)
+        # Check for output directory
+        if output_dir is not None:
+            self.output_dir = output_dir
+        else:
+            self.output_dir = tempfile.gettempdir()
+        
+        super().__init__(token, *args, **kwargs)
 
     def execute(self, context):
         """Fetches the specified sheet in the specified format.
         """
+
+        logging.info("Smartsheet GS operator executing...")
+        # Initialize the hook
+        super().execute()
 
         # Download the sheet
         if self.sheet_type is SmartsheetEnums.SheetType.CSV:
@@ -99,6 +110,7 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
         else:
             raise AirflowException(
                 "Sheet type is not recognized. This should not happen.")
+        logging.info("Downloaded Smartsheet file.");
 
         # Check return message
         if downloaded_sheet.message != "SUCCESS":

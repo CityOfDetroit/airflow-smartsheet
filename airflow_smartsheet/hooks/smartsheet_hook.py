@@ -1,4 +1,5 @@
 import smartsheet
+import logging
 
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
@@ -20,6 +21,7 @@ class SmartsheetHook(BaseHook):
         """
 
         self.token = self.__get_token(token)
+        logging.info(f"Initializing Smartsheet hook with token {self.token}...")
 
     def __get_token(self, token=None):
         """Either uses the user-specified token or use the default token from Airflow variables.
@@ -36,6 +38,7 @@ class SmartsheetHook(BaseHook):
         Returns:
             str -- The Smartsheet API access token to be used.
         """
+
         if token is not None:
             # Use override token
             return token
@@ -43,8 +46,9 @@ class SmartsheetHook(BaseHook):
             # Use token in variables
             default_token = Variable.get(VARIABLE_NAME)
             if default_token is None:
+                logging.error(f"Failed initializing Smartsheet hook; variable {VARIABLE_NAME} does not exist.")
                 raise AirflowException(
-                    f"Cannot get token: variable {VARIABLE_NAME} does not exist.")
+                    f"Failed initializing Smartsheet hook; variable {VARIABLE_NAME} does not exist.")
 
             return default_token
 
@@ -54,4 +58,5 @@ class SmartsheetHook(BaseHook):
         Returns:
             Smartsheet -- The Smartsheet API session.
         """
+
         return smartsheet.Smartsheet(self.token)
