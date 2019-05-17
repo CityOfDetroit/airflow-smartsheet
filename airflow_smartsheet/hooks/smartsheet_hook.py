@@ -7,7 +7,7 @@ from airflow.models import Variable
 from airflow.exceptions import AirflowException
 
 
-VARIABLE_NAME = "SMARTSHEET_TOKEN"
+VARIABLE_NAME = "SMARTSHEET_ACCESS_TOKEN"
 
 class SmartsheetHook(BaseHook):
     """Interact with Smartsheet using Smartsheet's Python SDK.
