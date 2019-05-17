@@ -24,5 +24,8 @@ sheet_task = SmartsheetGetSheetOperator(
     sheet_id=3541639814768516,
     sheet_type="CSV",
     paper_size=None,
+    output_dir=None,
+    with_json=False,
+    no_overwrite=False,
     dag=dag
 )
