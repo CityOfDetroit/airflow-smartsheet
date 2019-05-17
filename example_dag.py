@@ -3,7 +3,6 @@ Code that goes along with the Airflow tutorial located at:
 https://github.com/apache/airflow/blob/master/airflow/example_dags/tutorial.py
 """
 import sys
-import logging
 from datetime import datetime
 
 from airflow import DAG
