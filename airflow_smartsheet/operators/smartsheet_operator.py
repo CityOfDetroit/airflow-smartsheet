@@ -26,6 +26,8 @@ class SmartsheetOperator(BaseOperator):
             token_value = kwargs["token"]
             if type(token_value) is str:
                 self.token = kwargs["token"]
+            else:
+                self.token = None
 
         super().__init__(*args, **kwargs)
 
