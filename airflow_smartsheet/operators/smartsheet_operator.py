@@ -47,6 +47,7 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
                  paper_size=None,
                  output_dir=None,
                  with_json=False,
+                 no_overwrite=False,
                  *args, **kwargs):
         """Initializes a Smartsheet Get Sheet operator.
         
@@ -58,6 +59,7 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             paper_size {str} -- Optional paper size for PDF file type. (default: {None})
             output_dir {str} -- Optional output directory to override default OS temp path. (default: {None})
             with_json {bool} -- Whether to save a JSON dump alongside specified file type. (default: {False})
+            no_overwrite {bool} -- Whether not to overwrite any file. (default: {False})
         
         Raises:
             AirflowException: Raised when PDF file type is selected but paper size is unspecified.
@@ -67,6 +69,7 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
         self.sheet_id = sheet_id
         self.sheet_type = SmartsheetEnums.SheetType[sheet_type]
         self.with_json = with_json
+        self.no_overwrite = no_overwrite
 
         if paper_size is None:
             self.paper_size = None
@@ -85,6 +88,63 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             self.output_dir = tempfile.gettempdir()
         
         super().__init__(*args, **kwargs)
+    
+    def _can_write(self, file_path):
+        """Determines whether the current options allow (over)writing to the specified file path.
+        
+        Arguments:
+            file_path {str} -- File path to be written to.
+        
+        Returns:
+            bool -- Whether (over)writing to the specified path is allowed.
+        """
+        return not os.path.isfile(file_path) or not self.no_overwrite
+    
+    def _ensure_paths(self):
+        """Ensures all required output file paths are (over)writable.
+        
+        Raises:
+            AirflowException: Raised when unable to write to download file path.
+            AirflowException: Raised when unable to write to JSON dump file path.
+        """
+
+        self.file_path = os.path.join(
+            self.output_dir, str(self.sheet_id) + "." + self.sheet_type.name.lower())
+        self.json_path = os.path.join(
+            self.output_dir, str(self.sheet_id) + ".json")
+        
+        if not self._can_write(self.file_path):
+            # Cannot write to download path
+            raise AirflowException(
+                f"Cannot write to download path {self.file_path} \
+                because the same-name file cannot be overwritten."
+            )
+        
+        if self.with_json and not self._can_write(self.json_path):
+            # Cannot write to JSON path
+            raise AirflowException(
+                f"Cannot write to JSON dump path {self.json_path} \
+                because the same-name file cannot be overwritten."
+            )
+    
+    def _ensure_removed(self, file_path):
+        """Ensures the specified file path is empty.
+        
+        Arguments:
+            file_path {str} -- Path to file to be removed.
+        """
+
+        if self.no_overwrite:
+            raise AirflowException(
+                "Attempted to ensure removal of file path but overwrite is disabled. \
+                This should not happen."
+            )
+
+        try:
+            os.remove(file_path)
+        except OSError:
+            # File does not exist; ignote
+            pass
 
     def execute(self, context):
         """Fetches the specified sheet in the specified format.
@@ -97,6 +157,9 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             AirflowException: Raised when the download returns an error.
             AirflowException: Raised when unable to overwrite an existing same-name file.
         """
+
+        # Ensure paths
+        self._ensure_paths()
 
         # Initialize the hook
         super().execute()
@@ -124,20 +187,15 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             raise AirflowException(
                 f"Download was unsuccessful; message is {downloaded_sheet.message}.")
 
-        # Make paths to old and new filenames
-        file_path = os.path.join(
+        # Get path to downloaded file
+        download_path = os.path.join(
             downloaded_sheet.download_directory, downloaded_sheet.filename)
-        new_file_path = os.path.join(self.output_dir, str(self.sheet_id) + "." + self.sheet_type.name.lower())
+        
+        # Rename downloaded file to sheet ID
+        self._ensure_removed(self.file_path)
+        os.rename(download_path,  self.file_path)
 
-        # Make sure no file is overwritten
-        if os.path.isfile(new_file_path):
-            raise AirflowException(
-                f"Cannot rename downloaded file; target filename {new_file_path} already exists.")
-        else:
-            os.rename(file_path,  new_file_path)
-
-        # Save a JSON copy if specified, replacing file extension with JSON
+        # Save a JSON copy if specified
         if self.with_json:
-            json_path = os.path.join(self.output_dir, str(self.sheet_id) + ".json")
-            with open(json_path, "w") as json_file:
+            with open(self.json_path, "w") as json_file:
                 json_file.write(downloaded_sheet.to_json())
