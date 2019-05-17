@@ -16,7 +16,7 @@ pip3 install airflow-smartsheet-plugin
 ```
 
 # Usage
-Create a variable in Airflow named `SMARTSHEET_TOKEN` to store your Smartsheet API access token.
+Create a variable in Airflow named `SMARTSHEET_ACCESS_TOKEN` to store your Smartsheet API access token.
 *You can also pass in an override token in your DAG definition.*
 
 This plugin is published as a pip package. Refer to the [example DAG](example_dag.py) for available parameters.
