@@ -136,10 +136,7 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
         """
 
         if self.no_overwrite:
-            raise AirflowException(
-                "Attempted to ensure removal of file path but overwrite is disabled. \
-                This should not happen."
-            )
+            return
 
         try:
             os.remove(file_path)
