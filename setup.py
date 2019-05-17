@@ -1,5 +1,7 @@
-# Setup definition file.
+# Package definition file. Use this file to generate a pip package.
+
 from setuptools import find_packages, setup
+
 
 setup(
     name="airflow-smartsheet-plugin",

@@ -1,14 +1,24 @@
+# Enums used for Smartsheet API methods.
+
 from enum import Enum
 
 
-# Enums used for Smartsheet API methods.
 class SmartsheetEnums:
+    """Enums used for Smartsheet API methods.
+    """
+
     class SheetType(Enum):
+        """Sheet output file type.
+        """
+
         CSV = 0
         EXCEL = 1
         PDF = 2
 
     class PaperSize(Enum):
+        """Sheet output paper size. Used for PDF file type.
+        """
+        
         LETTER = 0
         LEGAL = 1
         WIDE = 2

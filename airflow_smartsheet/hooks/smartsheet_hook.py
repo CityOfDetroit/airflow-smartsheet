@@ -1,33 +1,33 @@
+# Hooks used to interface with Smartsheet SDK.
+
 import smartsheet
 
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
 from airflow.exceptions import AirflowException
 
-VARIABLE_NAME = "SMARTSHEET_TOKEN"
 
+VARIABLE_NAME = "SMARTSHEET_TOKEN"
 
 class SmartsheetHook(BaseHook):
     """Interact with Smartsheet using Smartsheet's Python SDK.
     """
 
     def __init__(self, token=None):
-        """Initializes the hook with an optionally specified API access token.
+        """Initializes the hook with Smartsheet SDK.
 
         Keyword Arguments:
-            token {str} -- The token for connecting to Smartsheet API. 
-            Overrrides the token stored in Airflow variables. (default: {None})
+            token {str} -- Optional token that overrrides the token stored in Airflow variables. (default: {None})
         """
 
         self.token = self.__get_token(token)
 
     def __get_token(self, token=None):
-        """Either uses the user-specified token or use the default token from Airflow variables.
+        """Select either the user-specified token or the default token from Airflow variables.
         If neither token exists, an exception will be thrown.
 
         Keyword Arguments:
-            token {str} -- The token for connecting to Smartsheet API.
-            Overrides the token stored in Airflow variables. (default: {None})
+            token {str} -- Optional token that overrrides the token stored in Airflow variables. (default: {None})
 
         Raises:
             AirflowException: Raised when the Smartsheet token key does not exist in Airflow variables, 

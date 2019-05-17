@@ -1,3 +1,5 @@
+# Operators used to interface with Smartsheet SDK.
+
 import os
 import tempfile
 import smartsheet
@@ -15,20 +17,20 @@ class SmartsheetOperator(BaseOperator):
     """The base Smartsheet API operator.
     """
 
-    def __init__(self, token=None, *args, **kwargs):
-        """Initializes a Smartsheet API session with an optionally specified token.
-
-        Keyword Arguments:
-            token {str} -- The Smartsheet API access token to be used. (default: {None})
-            output_dir {str} -- The output directory for downloaded sheets. (default: {None})
+    def __init__(self, *args, **kwargs):
+        """Initializes a base Smartsheet API operator.
         """
 
-        self.token = token
+        # Set override token if specified
+        if "token" in kwargs:
+            token_value = kwargs["token"]
+            if type(token_value) is str:
+                self.token = kwargs["token"]
 
         super().__init__(*args, **kwargs)
 
     def execute(self, **kwargs):
-        """Executes the operator by creating a Smartsheet API session.
+        """Creates a Smartsheet API hook and establishes connection.
         """
         
         self.smartsheet_hook = SmartsheetHook(self.token)
@@ -45,32 +47,34 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
                  paper_size=None,
                  output_dir=None,
                  with_json=False,
-                 token=None,
                  *args, **kwargs):
-        """Initializes a Get Sheet operator with sheet type and paper size.
+        """Initializes a Smartsheet Get Sheet operator.
+        
         Arguments:
             sheet_id {int} -- Sheet ID to fetch.
             sheet_type {str} -- Sheet type.
-            paper_size {str} -- Paper size.
-            with_json {bool} -- Whether to save a JSON format alongside.
+        
         Keyword Arguments:
-            token {str} -- The Smartsheet API access token to be used. (default: {None})
-            output_dir {str} -- The output directory for downloaded sheets. (default: {None})
+            paper_size {str} -- Optional paper size for PDF file type. (default: {None})
+            output_dir {str} -- Optional output directory to override default OS temp path. (default: {None})
+            with_json {bool} -- Whether to save a JSON dump alongside specified file type. (default: {False})
+        
+        Raises:
+            AirflowException: Raised when PDF file type is selected but paper size is unspecified.
         """
 
-        # Set properties
+        # Invalid enum keys will cause an exception
         self.sheet_id = sheet_id
         self.sheet_type = SmartsheetEnums.SheetType[sheet_type]
         self.with_json = with_json
 
-        # Check for paper size if format is PDF
         if paper_size is None:
             self.paper_size = None
         else:
             self.paper_size = SmartsheetEnums.PaperSize[paper_size]
 
+        # Check for paper size if format is PDF
         if self.sheet_type is SmartsheetEnums.SheetType.PDF and self.paper_size is None:
-            # Must specify paper size for PDF
             raise AirflowException(
                 "PDF sheet type needs a paper size; paper size is unspecified.")
 
@@ -79,11 +83,19 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
             self.output_dir = output_dir
         else:
             self.output_dir = tempfile.gettempdir()
-
-        super().__init__(token, *args, **kwargs)
+        
+        super().__init__(*args, **kwargs)
 
     def execute(self, context):
         """Fetches the specified sheet in the specified format.
+        
+        Arguments:
+            context {[type]} -- [description]
+        
+        Raises:
+            AirflowException: Raised when an unsupported sheet type is specified.
+            AirflowException: Raised when the download returns an error.
+            AirflowException: Raised when unable to overwrite an existing same-name file.
         """
 
         # Initialize the hook
@@ -105,7 +117,7 @@ class SmartsheetGetSheetOperator(SmartsheetOperator):
                 self.paper_size.name)
         else:
             raise AirflowException(
-                "Sheet type is not recognized. This should not happen.")
+                "Sheet type is valid but not supported.")
 
         # Check return message
         if downloaded_sheet.message != "SUCCESS":
