@@ -21,4 +21,4 @@ Create a variable in Airflow named `SMARTSHEET_TOKEN` to store your Smartsheet A
 
 This plugin is published as a pip package. Refer to the [example DAG](example_dag.py) for available parameters.
 
-Refer to the [enums](operators/enums.py) for available PDF paper sizes.
+Refer to the [enums](airflow_smartsheet/operators/enums.py) for available PDF paper sizes.
