@@ -8,7 +8,7 @@ with open("README.md", "r") as readme:
 
 setup(
     name="airflow-smartsheet-plugin",
-    version="0.0.1",
+    version="0.0.2",
     author="xyx0826",
     author_email="xyx0826@hotmail.com",
     description="An Apache Airflow plugin to export Smartsheet sheets.",
