@@ -1,4 +1,4 @@
-# Airflow-Smartsheet
+# airflow-smartsheet
 Simple hooks and operators for exporting data from Smartsheet.
 
 This plugin currently supports exporting a Smartsheet sheet as CSV, PDF or EXCEL file. For PDF format, a paper size is required.
