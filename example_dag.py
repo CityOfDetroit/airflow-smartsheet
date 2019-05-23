@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 
 from airflow import DAG
-from airflow.operators.airflow_smartsheet import SmartsheetGetSheetOperator
+from airflow.operators.airflow_smartsheet import SmartsheetToFileOperator
 
 
 default_args = {
@@ -18,7 +18,7 @@ default_args = {
 
 dag = DAG('smartsheet_example', default_args=default_args, schedule_interval=None)
 
-sheet_task = SmartsheetGetSheetOperator(
+sheet_task = SmartsheetToFileOperator(
     task_id="get_sheet",
     sheet_id=3541639814768516,
     sheet_type="CSV",

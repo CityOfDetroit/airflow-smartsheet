@@ -38,7 +38,7 @@ class SmartsheetOperator(BaseOperator):
         self.smartsheet = self.smartsheet_hook.get_conn()
 
 
-class SmartsheetGetSheetOperator(SmartsheetOperator):
+class SmartsheetToFileOperator(SmartsheetOperator):
     """The Smartsheet operator to get a sheet as a file.
     """
 
