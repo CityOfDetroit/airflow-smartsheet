@@ -18,20 +18,25 @@ default_args = {
 
 dag = DAG('smartsheet_example', default_args=default_args, schedule_interval=None)
 
-# sheet_task = SmartsheetToFileOperator(
-#     task_id="get_sheet",
-#     sheet_id=3541639814768516,
-#     sheet_type="CSV",
-#     paper_size=None,
-#     output_dir=None,
-#     with_json=False,
-#     no_overwrite=False,
-#     dag=dag
-# )
+# This operator exports the specified sheet to path `{output_dir}/{sheet_id}.{sheet_type}`
+to_file_task = SmartsheetToFileOperator(
+    task_id="get_sheet",
+    sheet_id=3541639814768516,      # Mandatory: Smartsheet sheet ID to be exported
+    sheet_type="CSV",               # Mandatory: One of sheet types in enums
+    paper_size=None,                # Mandatory for PDF sheet type: one of paper sizes in enums
+    output_dir=None,                # Optional: export path (default: OS temp)
+    with_json=False,                # Optional: save a JSON sheet dump (default: False)
+    no_overwrite=False,             # Optional: whether to disallow file overwrite (default: False)
+    dag=dag
+)
 
-sheet_task = SmartsheetToPostgresOperator(
+# This operator imports the specified sheet to the specified table after truncating it
+to_pg_task = SmartsheetToPostgresOperator(
     task_id="sync_sheet",
-    sheet_id=3541639814768516,
-    table_name="newtable",
+    sheet_id=3541639814768516,      # Mandatory: Smartsheet sheet ID to be exported
+    table_name="newtable",          # Mandatory: PostgreSQL table ID to be imported to
+    postgres_conn_id=None,          # Optional: override PG connection ID (default: see consts)
+    postgres_database=None,         # Optional: override PG database (default: see consts)
+    postgres_schema=None,           # Optional: override PG schema (default: see consts)
     dag=dag
 )

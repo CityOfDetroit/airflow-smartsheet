@@ -1,13 +1,11 @@
-# airflow-smartsheet
-Simple hooks and operators for exporting data from Smartsheet.
+# airflow-smartsheet [![PyPI version](https://badge.fury.io/py/airflow-smartsheet-plugin.svg)](https://pypi.org/project/airflow-smartsheet-plugin/0.0.2/)
+Simple hooks and operators for transporting data from Smartsheet.
 
-This plugin currently supports exporting a Smartsheet sheet as CSV, PDF or EXCEL file. For PDF format, a paper size is required.
+Import Smartsheet into PostgreSQL or export as CSV, PDF or EXCEL file.
 
 # Features
-- Exporting a Smartsheet sheet to a file
-- Exporting a Smartsheet sheet JSON dump
-- Specifying path to store exported files
-- Enabling/disabling overwriting existing files
+- `SmartsheetToFileOperator`: exporting a Smartsheet sheet to a file/json
+- `SmartsheetToPostgresOperator`: exporting a Smartsheet sheet to a PostgreSQL table
 
 # Install
 Using pip:
