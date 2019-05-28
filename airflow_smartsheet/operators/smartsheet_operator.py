@@ -51,6 +51,7 @@ class SmartsheetToFileOperator(SmartsheetOperator):
                  no_overwrite=False,
                  *args, **kwargs):
         """Initializes a Smartsheet Get Sheet operator.
+        This operator takes a Smartsheet sheet and saves it as a file.
         
         Arguments:
             sheet_id {int} -- Sheet ID to fetch.
@@ -197,3 +198,23 @@ class SmartsheetToFileOperator(SmartsheetOperator):
         if self.with_json:
             with open(self.json_path, "w") as json_file:
                 json_file.write(downloaded_sheet.to_json())
+
+
+class SmartsheetToPostgresOperator(SmartsheetOperator):
+    """The Smartsheet operator to save a sheet to database.
+    """
+
+    def __init__(
+        self,
+        sheet_id,
+        *args, **kwargs):
+        """Initializes a Smartsheet To Postgres operator.
+        This operator takes a Smartsheet sheet and saves it to PostgreSQL.
+        
+        Arguments:
+            sheet_id {int} -- Sheet ID to fetch.
+        """
+        
+        self.sheet_id = sheet_id
+
+        super().__init__(*args, **kwargs)
