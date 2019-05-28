@@ -213,6 +213,7 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
             sheet_id,
             table_name,
             postgres_conn_id=None,
+            postgres_database=None,
             postgres_schema=None,
             *args, **kwargs):
         """Initializes a Smartsheet To Postgres operator.
@@ -225,10 +226,14 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
 
         self.table_name = table_name
         self.postgres_conn_id = postgres_conn_id
+        self.postgres_database = postgres_database
         self.postgres_schema = postgres_schema
 
         if postgres_conn_id is None:
             self.postgres_conn_id = DEFAULT_PG_CONN
+        
+        if postgres_database is None:
+            self.postgres_database = DEFAULT_PG_DB
 
         if postgres_schema is None:
             self.postgres_schema = DEFAULT_PG_SCHEMA
@@ -240,33 +245,46 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
         )
 
     def _purge_table(self):
+        """Truncates a PostgreSQL table.
+        """
+
         self.postgres.run(f"TRUNCATE TABLE {self.postgres_schema}.{self.table_name};")
 
     def _copy_table(self):
+        """Uses psycopg2 copy_expert to import CSV data to a PostgreSQL table.
+        """
+
+        # copy_expert pipes CSV data to STDIN
         self.postgres.copy_expert(
             f"COPY {self.postgres_schema}.{self.table_name} FROM STDIN WITH (FORMAT csv, HEADER true);",
             f"{self.output_dir}/{self.sheet_id}_enriched.csv")
     
     def _enrich_csv(self):
+        """Enriches Smartsheet export CSV with Smartsheet API row numbers.
+        """
+
+        # Read original CSV rows and length
         with open(f"{self.output_dir}/{self.sheet_id}.csv") as file:
             csv_sheet = csv.reader(file)
             tuple_sheet = [tuple(row) for row in csv_sheet]
-            # exclude header row
+            # remove header row
             first_row = tuple_sheet[0]
             tuple_sheet.remove(first_row)
             first_row = ("RowNumber",) + first_row
             sheet_len = len(tuple_sheet)
         
+        # Get row numbers from query API
         sheet = self.smartsheet.Sheets.get_sheet(
             sheet_id=self.sheet_id,
             page_size=sheet_len)
         sheet_rows = sheet.to_dict()["rows"]
         row_ids = [row["rowNumber"] for row in sheet_rows]
 
-        # Insert row ID in front of row content
+        # Insert row ID in front of each row
         for i in range(0, len(tuple_sheet)):
             tuple_sheet[i] = (row_ids[i],) + tuple_sheet[i]
         
+        # Create new file for enriched CSV
         with open(f"{self.output_dir}/{self.sheet_id}_enriched.csv", "w") as file:
             enriched_csv = csv.writer(file, lineterminator="\n")
             enriched_csv.writerow(first_row)
@@ -275,10 +293,10 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
 
     def execute(self, context):
         # Initialize PostgreSQL hook
-        # Schema is actually database name!
+        # Schema is actually database name.
         self.postgres = PostgresHook(
             postgres_conn_id=self.postgres_conn_id,
-            schema=DEFAULT_PG_DB)
+            schema=self.postgres_database)
 
         # Fetch Smartsheet as file
         super().execute()
