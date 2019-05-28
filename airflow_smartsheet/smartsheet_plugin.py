@@ -2,13 +2,13 @@
 from airflow.plugins_manager import AirflowPlugin
 from airflow.models import BaseOperator
 from airflow.hooks.base_hook import BaseHook
-from airflow_smartsheet.operators.smartsheet_operator import SmartsheetToFileOperator
+from airflow_smartsheet.operators.smartsheet_operator import SmartsheetToFileOperator, SmartsheetToPostgresOperator
 from airflow_smartsheet.hooks.smartsheet_hook import SmartsheetHook
 
 
 class SmartsheetPlugin(AirflowPlugin):
     name = 'airflow_smartsheet'
-    operators = [SmartsheetToFileOperator]
+    operators = [SmartsheetToFileOperator, SmartsheetToPostgresOperator]
     hooks = [SmartsheetHook]
 
     # A list of class(es) derived from BaseExecutor

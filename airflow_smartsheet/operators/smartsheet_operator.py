@@ -1,6 +1,6 @@
 # Operators used to interface with Smartsheet SDK.
 
-import csv, os, tempfile
+import csv, os, tempfile, logging
 import smartsheet
 
 from airflow.models import BaseOperator
@@ -14,8 +14,8 @@ from airflow_smartsheet.operators.enums import SmartsheetEnums
 
 
 DEFAULT_PG_CONN = "etl_postgres"
+DEFAULT_PG_DB = "etl"
 DEFAULT_PG_SCHEMA = "public"
-
 
 class SmartsheetOperator(BaseOperator):
     """The base Smartsheet API operator.
@@ -235,20 +235,27 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
 
         super().__init__(
             sheet_id,
-            SmartsheetEnums.SheetType.CSV
+            sheet_type="CSV",
+            *args, **kwargs
         )
 
     def _purge_table(self):
-        self.postgres.execute(f"TRUNCATE TABLE {self.table_name};")
+        self.postgres.run(f"TRUNCATE TABLE {self.postgres_schema}.{self.table_name};")
 
     def _copy_table(self):
         self.postgres.copy_expert(
-            f"COPY {self.table_name} FROM {self.output_dir}/{self.sheet_id}_enriched.csv WITH (FORMAT csv, HEADER true);")
+            f"COPY {self.postgres_schema}.{self.table_name} FROM STDIN WITH (FORMAT csv, HEADER true);",
+            f"{self.output_dir}/{self.sheet_id}_enriched.csv")
     
     def _enrich_csv(self):
         with open(f"{self.output_dir}/{self.sheet_id}.csv") as file:
-            sheet_list = list(csv.reader(file))
-            sheet_len = len(sheet_list)
+            csv_sheet = csv.reader(file)
+            tuple_sheet = [tuple(row) for row in csv_sheet]
+            # exclude header row
+            first_row = tuple_sheet[0]
+            tuple_sheet.remove(first_row)
+            first_row = ("RowNumber",) + first_row
+            sheet_len = len(tuple_sheet)
         
         sheet = self.smartsheet.Sheets.get_sheet(
             sheet_id=self.sheet_id,
@@ -257,19 +264,21 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
         row_ids = [row["rowNumber"] for row in sheet_rows]
 
         # Insert row ID in front of row content
-        for i in range(0, len(sheet_list)):
-            sheet_list[i] = (row_ids[i],) + sheet_list[i]
+        for i in range(0, len(tuple_sheet)):
+            tuple_sheet[i] = (row_ids[i],) + tuple_sheet[i]
         
-        with open(f"{self.output_dir}/{self.sheet_id}_enriched.csv") as file:
+        with open(f"{self.output_dir}/{self.sheet_id}_enriched.csv", "w") as file:
             enriched_csv = csv.writer(file, lineterminator="\n")
-            enriched_csv.writerows(sheet_list)
+            enriched_csv.writerow(first_row)
+            enriched_csv.writerows(tuple_sheet)
 
 
     def execute(self, context):
         # Initialize PostgreSQL hook
+        # Schema is actually database name!
         self.postgres = PostgresHook(
             postgres_conn_id=self.postgres_conn_id,
-            schema=self.postgres_schema).get_sqlalchemy_engine()
+            schema=DEFAULT_PG_DB)
 
         # Fetch Smartsheet as file
         super().execute()

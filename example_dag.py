@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 
 from airflow import DAG
-from airflow.operators.airflow_smartsheet import SmartsheetToFileOperator
+from airflow.operators.airflow_smartsheet import SmartsheetToFileOperator, SmartsheetToPostgresOperator
 
 
 default_args = {
@@ -18,13 +18,20 @@ default_args = {
 
 dag = DAG('smartsheet_example', default_args=default_args, schedule_interval=None)
 
-sheet_task = SmartsheetToFileOperator(
-    task_id="get_sheet",
+# sheet_task = SmartsheetToFileOperator(
+#     task_id="get_sheet",
+#     sheet_id=3541639814768516,
+#     sheet_type="CSV",
+#     paper_size=None,
+#     output_dir=None,
+#     with_json=False,
+#     no_overwrite=False,
+#     dag=dag
+# )
+
+sheet_task = SmartsheetToPostgresOperator(
+    task_id="sync_sheet",
     sheet_id=3541639814768516,
-    sheet_type="CSV",
-    paper_size=None,
-    output_dir=None,
-    with_json=False,
-    no_overwrite=False,
+    table_name="newtable",
     dag=dag
 )
