@@ -1,6 +1,9 @@
 # Operators used to interface with Smartsheet SDK.
 
-import csv, os, tempfile, logging
+import csv
+import os
+import tempfile
+import logging
 import smartsheet
 
 from airflow.models import BaseOperator
@@ -16,6 +19,7 @@ from airflow_smartsheet.operators.enums import SmartsheetEnums
 DEFAULT_PG_CONN = "etl_postgres"
 DEFAULT_PG_DB = "etl"
 DEFAULT_PG_SCHEMA = "public"
+
 
 class SmartsheetOperator(BaseOperator):
     """The base Smartsheet API operator.
@@ -231,7 +235,7 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
 
         if postgres_conn_id is None:
             self.postgres_conn_id = DEFAULT_PG_CONN
-        
+
         if postgres_database is None:
             self.postgres_database = DEFAULT_PG_DB
 
@@ -248,7 +252,8 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
         """Truncates a PostgreSQL table.
         """
 
-        self.postgres.run(f"TRUNCATE TABLE {self.postgres_schema}.{self.table_name};")
+        self.postgres.run(
+            f"TRUNCATE TABLE {self.postgres_schema}.{self.table_name};")
 
     def _copy_table(self):
         """Uses psycopg2 copy_expert to import CSV data to a PostgreSQL table.
@@ -258,7 +263,7 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
         self.postgres.copy_expert(
             f"COPY {self.postgres_schema}.{self.table_name} FROM STDIN WITH (FORMAT csv, HEADER true);",
             f"{self.output_dir}/{self.sheet_id}_enriched.csv")
-    
+
     def _enrich_csv(self):
         """Enriches Smartsheet export CSV with Smartsheet API row numbers.
         """
@@ -272,7 +277,7 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
             tuple_sheet.remove(first_row)
             first_row = ("RowNumber",) + first_row
             sheet_len = len(tuple_sheet)
-        
+
         # Get row numbers from query API
         sheet = self.smartsheet.Sheets.get_sheet(
             sheet_id=self.sheet_id,
@@ -283,13 +288,12 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
         # Insert row ID in front of each row
         for i in range(0, len(tuple_sheet)):
             tuple_sheet[i] = (row_ids[i],) + tuple_sheet[i]
-        
+
         # Create new file for enriched CSV
         with open(f"{self.output_dir}/{self.sheet_id}_enriched.csv", "w") as file:
             enriched_csv = csv.writer(file, lineterminator="\n")
             enriched_csv.writerow(first_row)
             enriched_csv.writerows(tuple_sheet)
-
 
     def execute(self, context):
         # Initialize PostgreSQL hook
