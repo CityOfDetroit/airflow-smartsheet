@@ -1,8 +1,6 @@
 # Operators used to interface with Smartsheet SDK.
 
-import os
-import tempfile
-import subprocess
+import csv, os, tempfile
 import smartsheet
 
 from airflow.models import BaseOperator
@@ -245,7 +243,27 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
 
     def _copy_table(self):
         self.postgres.copy_expert(
-            f"COPY {self.table_name} FROM {self.output_dir}/{self.sheet_id}.csv WITH (FORMAT csv, HEADER true);")
+            f"COPY {self.table_name} FROM {self.output_dir}/{self.sheet_id}_enriched.csv WITH (FORMAT csv, HEADER true);")
+    
+    def _enrich_csv(self):
+        with open(f"{self.output_dir}/{self.sheet_id}.csv") as file:
+            sheet_list = list(csv.reader(file))
+            sheet_len = len(sheet_list)
+        
+        sheet = self.smartsheet.Sheets.get_sheet(
+            sheet_id=self.sheet_id,
+            page_size=sheet_len)
+        sheet_rows = sheet.to_dict()["rows"]
+        row_ids = [row["rowNumber"] for row in sheet_rows]
+
+        # Insert row ID in front of row content
+        for i in range(0, len(sheet_list)):
+            sheet_list[i] = (row_ids[i],) + sheet_list[i]
+        
+        with open(f"{self.output_dir}/{self.sheet_id}_enriched.csv") as file:
+            enriched_csv = csv.writer(file, lineterminator="\n")
+            enriched_csv.writerows(sheet_list)
+
 
     def execute(self, context):
         # Initialize PostgreSQL hook
@@ -256,5 +274,6 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
         # Fetch Smartsheet as file
         super().execute()
 
+        self._enrich_csv()
         self._purge_table()
         self._copy_table()
