@@ -28,3 +28,10 @@ class SmartsheetEnums:
         A2 = 6
         A1 = 7
         A0 = 8
+    
+    class BatchMode(Enum):
+        """PostgreSQL batch operation mode. Used for parsing YML files.
+        """
+
+        PARAMS = 0
+        FILES = 1
