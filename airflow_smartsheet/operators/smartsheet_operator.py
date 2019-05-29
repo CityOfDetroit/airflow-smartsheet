@@ -6,19 +6,14 @@ import tempfile
 import logging
 import smartsheet
 
+from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
 from airflow.models import Variable
-from airflow.utils.decorators import apply_defaults
-from airflow.exceptions import AirflowException
-
 from airflow.hooks.postgres_hook import PostgresHook
+
 from airflow_smartsheet.hooks.smartsheet_hook import SmartsheetHook
 from airflow_smartsheet.operators.enums import SmartsheetEnums
-
-
-DEFAULT_PG_CONN = "etl_postgres"
-DEFAULT_PG_DB = "etl"
-DEFAULT_PG_SCHEMA = "public"
+from airflow_smartsheet.consts import *
 
 
 class SmartsheetOperator(BaseOperator):
@@ -308,3 +303,4 @@ class SmartsheetToPostgresOperator(SmartsheetToFileOperator):
         self._enrich_csv()
         self._purge_table()
         self._copy_table()
+        
